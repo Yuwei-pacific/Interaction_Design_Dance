@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Color Particle Portrait</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
+
+    video {
+      display: none;
+    }
+
+    canvas {
+      display: none;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
+
+<body>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1000;
+    canvas.height = 1000;
+
+    // Three.js setup
+    const scene = new THREE.Scene();
+    const camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    camera3D.position.z = 2.5;
+
+    let particles, particleGeometry, particleMaterial;
+
+    function createParticles(imageData, maskData) {
+      const positions = [];
+      const colors = [];
+
+      for (let y = 0; y < canvas.height; y += 2) {
+        for (let x = 0; x < canvas.width; x += 2) {
+          const i = (y * canvas.width + x) * 4;
+          const alpha = maskData[i];
+          if (alpha > 128) {
+            const r = imageData[i] / 255;
+            const g = imageData[i + 1] / 255;
+            const b = imageData[i + 2] / 255;
+            const nx = (x / canvas.width - 0.5) * 2;
+            const ny = -(y / canvas.height - 0.5) * 2;
+            positions.push(nx, ny, 0);
+            colors.push(r, g, b);
+          }
+        }
+      }
+
+      particleGeometry = new THREE.BufferGeometry();
+      particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      particleGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+      particleMaterial = new THREE.PointsMaterial({ size: 0.02, vertexColors: true });
+
+      if (particles) scene.remove(particles);
+      particles = new THREE.Points(particleGeometry, particleMaterial);
+      scene.add(particles);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Optional: floating effect
+      if (particleGeometry) {
+        const positions = particleGeometry.attributes.position.array;
+        const t = Date.now() * 0.001;
+        for (let i = 0; i < positions.length; i += 3) {
+          positions[i + 1] += Math.sin(t + i) * 0.0003;
+        }
+        particleGeometry.attributes.position.needsUpdate = true;
+      }
+
+      renderer.render(scene, camera3D);
+    }
+    animate();
+
+    async function setupCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      video.srcObject = stream;
+      return new Promise(resolve => {
+        video.onloadedmetadata = () => resolve(video);
+      });
+    }
+
+    const segmentation = new SelfieSegmentation({ locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}` });
+    segmentation.setOptions({ modelSelection: 1 });
+
+    segmentation.onResults(results => {
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
+      const maskData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+      createParticles(imageData, maskData);
+    });
+
+    const cameraUtils = new Camera(video, {
+      onFrame: async () => {
+        await segmentation.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+
+    setupCamera().then(() => cameraUtils.start());
+  </script>
+</body>
+
+</html>
