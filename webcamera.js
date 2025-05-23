@@ -119,7 +119,7 @@ const uicanvas = document.getElementById('uicanvas');
 const ctxui = uicanvas.getContext('2d')
 
 const uiImage = new Image();
-uiImage.src = './asset/first_try.png'
+uiImage.src = './asset/deneme2.png'
 
 ctxui.clearRect(0, 0, uicanvas.width, uicanvas.height)
 
