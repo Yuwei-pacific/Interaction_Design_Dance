@@ -9,10 +9,18 @@
  }
 
  h1 {
+   margin-top: 30px;
    color: white;
    font-weight: 800;
    font-size: 40px;
    text-align: left;
+ }
+
+ p {
+   color: white;
+   text-align: left;
+   margin-top: 30px;
+   line-height: 20px;
  }
 
  #uicanvas {
