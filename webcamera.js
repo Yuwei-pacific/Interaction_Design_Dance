@@ -112,3 +112,18 @@ async function predict() {
   // 显示视频画面（不画点）
   // ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 }
+
+
+// ui绘制
+const uicanvas = document.getElementById('uicanvas');
+const ctxui = uicanvas.getContext('2d')
+
+const uiImage = new Image();
+uiImage.src = './asset/first_try.png'
+
+ctxui.clearRect(0, 0, uicanvas.width, uicanvas.height)
+
+uiImage.onload = function () {
+  ctxui.drawImage(uiImage, 0, 0, 400, 700)
+}
+
