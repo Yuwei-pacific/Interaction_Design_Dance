@@ -113,34 +113,31 @@ async function predict() {
 
 // --------------------------- 触发函数 ---------------------------
 function triggerVideoIfNeeded(predArray) {
-  const think = predArray.find(p => p.className === "think"); // ★ 类名
-  const sit = predArray.find(p => p.className === "sit"); // ★ 类名
-  const wave_hand = predArray.find(p => p.className === "wave hand"); // ★ 类名
+  // 1. 如果动画还在播，不打断它
+  if (!animVideo.paused) return;
 
-  if (!wave_hand) return
-  if (!sit) return
-  if (!think) return;
+  // 2. 取出三个目标类别（可能为 undefined）
+  const waveHand = predArray.find(p => p.className === "wave hand");
+  const sit = predArray.find(p => p.className === "sit");
+  const think = predArray.find(p => p.className === "think");
 
-  if (wave_hand.probability == 1 && animVideo.paused) {
-    animVideo.src = "./asset/Animation_3.webm";
-    animVideo.currentTime = 0;
-    animVideo.style.display = "block";
-    animVideo.play();
+  // 3. 每帧只播放一个，按优先级：wave hand > sit > think
+  if (waveHand && waveHand.probability >= 0.95) {
+    playAnim("./asset/Animation_3.webm");
+  } else if (sit && sit.probability >= 0.95) {
+    playAnim("./asset/Animation_2.webm");
+  } else if (think && think.probability >= 0.95) {
+    playAnim("./asset/Animation_1.webm");
   }
+}
 
-  if (sit.probability == 1 && animVideo.paused) {
-    animVideo.src = "./asset/Animation_2.webm";
-    animVideo.currentTime = 0;
-    animVideo.style.display = "block";
-    animVideo.play();
-  }
-
-  if (think.probability == 1 && animVideo.paused) {
-    animVideo.src = "./asset/Animation_1.webm";
-    animVideo.currentTime = 0;
-    animVideo.style.display = "block";
-    animVideo.play();
-  }
+/* 封装播放逻辑，避免重复代码 */
+function playAnim(src) {
+  animVideo.src = src;          // 切换文件
+  animVideo.style.display = "block";
+  animVideo.currentTime = 0;
+  animVideo.load();             // 关键：确保浏览器重新加载
+  animVideo.play();
 }
 
 // --------------------------- 叠加 UI（可选） ---------------------------
