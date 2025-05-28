@@ -1,68 +1,67 @@
-// 摄像头调用
-// const video = document.getElementById('webcam');
+/*
+  使用 Teachable Machine Pose 模型在浏览器中进行姿势分类示例
+  -------------------------------------------------------------
+  1. 加载模型
+  2. 打开摄像头
+  3. 不断估计姿态并分类
+  4. 在 <canvas> 上水平翻转绘制视频帧
+  5. 当 "think" 概率 ≥ 0.9 时叠加播放 animVideo
+*/
 
-// navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-//   .then(stream => {
-//     video.srcObject = stream;
-//   })
-//   .catch(err => {
-//     console.error("no camera", err)
-//   })
-
-// More API functions here:
-// https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/pose
-
-// the link to your model provided by Teachable Machine export panel
+// ---------------------- 全局常量与变量 ----------------------
 const URL = "./my-pose-model/";
 let model, video, canvas, ctx, labelContainer;
+const animVideo = document.getElementById("animVideo");   // 叠加动画
 
+// --------------------------- 入口 ---------------------------
 async function init() {
-  // 加载模型
-  const modelURL = URL + "model.json";
-  const metadataURL = URL + "metadata.json";
-  model = await tmPose.load(modelURL, metadataURL);
+  /* 1. 加载模型文件 */
+  model = await tmPose.load(URL + "model.json", URL + "metadata.json");
 
-  // 准备 video 元素
-  // video = document.getElementById("webcam");
+  /* 2. 获取/准备 DOM 元素 */
   canvas = document.getElementById("canvas");
   ctx = canvas.getContext("2d");
   labelContainer = document.getElementById("label-container");
 
-  // 打开摄像头
+  /* 3. 打开摄像头 */
   await setupCamera();
   video.play();
 
-  // 获取类别标签
+  /* 4. 根据类别数生成条形图 UI */
   const maxPredictions = model.getTotalClasses();
   for (let i = 0; i < maxPredictions; i++) {
-    // labelContainer.appendChild(document.createElement("div"));
     const barContainer = document.createElement("div");
     barContainer.className = "bar-container";
 
     const label = document.createElement("span");
     label.className = "label";
-    label.innerText = "Label";
 
     const bar = document.createElement("div");
     bar.className = "bar";
 
     const fill = document.createElement("div");
     fill.className = "fill";
-    bar.appendChild(fill);
 
+    bar.appendChild(fill);
     barContainer.appendChild(label);
     barContainer.appendChild(bar);
     labelContainer.appendChild(barContainer);
   }
 
-  // 开始识别循环
+  /* 5. 绑定一次性的 ended 事件：播放完成后隐藏视频 */
+  animVideo.addEventListener("ended", () => {
+    animVideo.style.display = "none";
+  });
+
+  /* 6. 启动帧循环 */
   requestAnimationFrame(loop);
 }
 
+// --------------------- 摄像头初始化 ---------------------
 async function setupCamera() {
-  video = document.createElement("video"); // ✅ 创建 video 元素
-  video.setAttribute("playsinline", "");   // 避免在 iOS 上进入全屏
-  video.setAttribute("muted", "true");     // 避免警告
+  video = document.createElement("video");
+  video.setAttribute("playsinline", "");
+  video.setAttribute("muted", "true");
   video.width = 400;
   video.height = 400;
 
@@ -70,60 +69,70 @@ async function setupCamera() {
     video: { width: 800, height: 1400 },
     audio: false
   });
-
   video.srcObject = stream;
 
   return new Promise(resolve => {
-    video.onloadedmetadata = () => {
-      resolve(video);
-    };
+    video.onloadedmetadata = () => resolve(video);
   });
 }
 
+// --------------------------- 帧循环 ---------------------------
 async function loop() {
   await predict();
   requestAnimationFrame(loop);
 }
 
+// --------------------------- 推理 + 渲染 ---------------------------
 async function predict() {
+  /* A. 姿态估计 */
   const { pose, posenetOutput } = await model.estimatePose(video);
+
+  /* B. 分类预测 */
   const prediction = await model.predict(posenetOutput);
 
-  // 显示最高概率的分类
+  /* C. 更新条形图 UI */
   for (let i = 0; i < prediction.length; i++) {
-    const classPrediction = `${prediction[i].className}: ${prediction[i].probability.toFixed(2)}`;
-    // labelContainer.childNodes[i].innerHTML = classPrediction;
     const barContainer = labelContainer.childNodes[i];
     const label = barContainer.querySelector(".label");
     const fill = barContainer.querySelector(".fill");
 
     label.innerText = `${prediction[i].className}: ${prediction[i].probability.toFixed(2)}`;
     fill.style.width = `${prediction[i].probability * 100}%`;
-
-
-    // ✅ 水平翻转画面
-    ctx.save();
-    ctx.scale(-1, 1);
-    ctx.translate(-canvas.width, 0);
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    ctx.restore();
   }
 
-  // 显示视频画面（不画点）
-  // ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  /* D. 触发动画（关键行）*/
+  triggerVideoIfNeeded(prediction);
+
+  /* E. 水平翻转后绘制视频帧 */
+  ctx.save();
+  ctx.scale(-1, 1);
+  ctx.translate(-canvas.width, 0);
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  ctx.restore();
 }
 
+// --------------------------- 触发函数 ---------------------------
+function triggerVideoIfNeeded(predArray) {
+  const target = predArray.find(p => p.className === "think"); // ★ 类名
+  if (!target) return;
 
-// ui绘制
-const uicanvas = document.getElementById('uicanvas');
-const ctxui = uicanvas.getContext('2d')
+  if (target.probability >= 0.9 && animVideo.paused) {
+    animVideo.currentTime = 0;
+    animVideo.style.display = "block";
+    animVideo.play();
+  }
+}
 
+// --------------------------- 叠加 UI（可选） ---------------------------
+const uicanvas = document.getElementById("uicanvas");
+const ctxui = uicanvas.getContext("2d");
 const uiImage = new Image();
-uiImage.src = './asset/deneme2.png'
+uiImage.src = "./asset/deneme2.png";
 
-ctxui.clearRect(0, 0, uicanvas.width, uicanvas.height)
+uiImage.onload = () => {
+  ctxui.clearRect(0, 0, uicanvas.width, uicanvas.height);
+  ctxui.drawImage(uiImage, 0, 0, 400, 700);
+};
 
-uiImage.onload = function () {
-  ctxui.drawImage(uiImage, 0, 0, 400, 700)
-}
-
+// --------------------------- 启动 ---------------------------
+document.addEventListener("DOMContentLoaded", init);
