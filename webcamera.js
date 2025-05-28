@@ -113,10 +113,30 @@ async function predict() {
 
 // --------------------------- 触发函数 ---------------------------
 function triggerVideoIfNeeded(predArray) {
-  const target = predArray.find(p => p.className === "think"); // ★ 类名
-  if (!target) return;
+  const think = predArray.find(p => p.className === "think"); // ★ 类名
+  const sit = predArray.find(p => p.className === "sit"); // ★ 类名
+  const wave_hand = predArray.find(p => p.className === "wave hand"); // ★ 类名
 
-  if (target.probability >= 0.9 && animVideo.paused) {
+  if (!wave_hand) return
+  if (!sit) return
+  if (!think) return;
+
+  if (wave_hand.probability >= 0.99 && animVideo.paused) {
+    animVideo.src = "./asset/Animation_3.webm";
+    animVideo.currentTime = 0;
+    animVideo.style.display = "block";
+    animVideo.play();
+  }
+
+  if (sit.probability >= 0.99 && animVideo.paused) {
+    animVideo.src = "./asset/Animation_2.webm";
+    animVideo.currentTime = 0;
+    animVideo.style.display = "block";
+    animVideo.play();
+  }
+
+  if (think.probability >= 0.99 && animVideo.paused) {
+    animVideo.src = "./asset/Animation_1.webm";
     animVideo.currentTime = 0;
     animVideo.style.display = "block";
     animVideo.play();
