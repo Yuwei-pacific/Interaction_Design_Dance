@@ -121,21 +121,21 @@ function triggerVideoIfNeeded(predArray) {
   if (!sit) return
   if (!think) return;
 
-  if (wave_hand.probability >= 0.99 && animVideo.paused) {
+  if (wave_hand.probability == 1 && animVideo.paused) {
     animVideo.src = "./asset/Animation_3.webm";
     animVideo.currentTime = 0;
     animVideo.style.display = "block";
     animVideo.play();
   }
 
-  if (sit.probability >= 0.99 && animVideo.paused) {
+  if (sit.probability == 1 && animVideo.paused) {
     animVideo.src = "./asset/Animation_2.webm";
     animVideo.currentTime = 0;
     animVideo.style.display = "block";
     animVideo.play();
   }
 
-  if (think.probability >= 0.99 && animVideo.paused) {
+  if (think.probability == 1 && animVideo.paused) {
     animVideo.src = "./asset/Animation_1.webm";
     animVideo.currentTime = 0;
     animVideo.style.display = "block";
