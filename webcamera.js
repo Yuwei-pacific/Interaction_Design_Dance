@@ -12,6 +12,9 @@
 const URL = "./my-pose-model/";
 let model, video, canvas, ctx, labelContainer;
 const animVideo = document.getElementById("animVideo");   // 叠加动画
+// 用于缓存连续识别的帧数
+let detectionCounter = 0;
+const requiredStableFrames = 3;
 
 // --------------------------- 入口 ---------------------------
 async function init() {
@@ -62,11 +65,13 @@ async function setupCamera() {
   video = document.createElement("video");
   video.setAttribute("playsinline", "");
   video.setAttribute("muted", "true");
-  video.width = 400;
-  video.height = 400;
+  // video.width = 400;
+  // video.height = 400;
 
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { width: 800, height: 1400 },
+    // video: { width: 1280, height: 720 },
+
     audio: false
   });
   video.srcObject = stream;
@@ -111,23 +116,45 @@ async function predict() {
   ctx.restore();
 }
 
+// --------------------------- 定义动作序列 ---------------------------
+const poseSequence = ['wave hand', 'sit', 'think'];
+let currentStep = 0;
+let sequenceCompelete = false;
+let finalPoint = 0;
+
+
 // --------------------------- 触发函数 ---------------------------
 function triggerVideoIfNeeded(predArray) {
-  // 1. 如果动画还在播，不打断它
-  if (!animVideo.paused) return;
+  if (sequenceCompelete || animVideo && !animVideo.paused) return;
 
-  // 2. 取出三个目标类别（可能为 undefined）
-  const waveHand = predArray.find(p => p.className === "wave hand");
-  const sit = predArray.find(p => p.className === "sit");
-  const think = predArray.find(p => p.className === "think");
+  const currentPoseName = poseSequence[currentStep];
+  const predictionPose = predArray.find(p => p.className === currentPoseName);
 
-  // 3. 每帧只播放一个，按优先级：wave hand > sit > think
-  if (waveHand && waveHand.probability >= 0.95) {
-    playAnim("./asset/Animation_3.webm");
-  } else if (sit && sit.probability >= 0.95) {
-    playAnim("./asset/Animation_2.webm");
-  } else if (think && think.probability >= 0.95) {
-    playAnim("./asset/Animation_1.webm");
+  if (predictionPose && predictionPose.probability >= 0.95) {
+    detectionCounter++;
+    if (detectionCounter >= requiredStableFrames) {
+      console.log("✅ 通过检测", currentPoseName, "Step:", currentStep);
+      playAnim(getAnimForPose(currentPoseName));
+      currentStep++;
+      detectionCounter = 0;
+
+      if (currentStep >= poseSequence.length) {
+        sequenceCompelete = true;
+        console.log("🎉 所有动作完成！");
+      }
+    }
+  } else {
+    // 如果不符合要求就重置连续帧数
+    detectionCounter = 0;
+  }
+}
+
+function getAnimForPose(posename) {
+  switch (posename) {
+    case "wave hand": return "./asset/Animation_3.webm";
+    case "sit": return "./asset/Animation_2.webm";
+    case "think": return "./asset/Animation_1.webm";
+    default: return "";
   }
 }
 
