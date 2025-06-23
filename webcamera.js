@@ -117,7 +117,7 @@ async function predict() {
 }
 
 // --------------------------- 定义动作序列 ---------------------------
-const poseSequence = ['wave hand', 'sit', 'think'];
+const poseSequence = ['Wave Left Hand', 'Wave Right Hand', 'Wave Two Hands'];
 let currentStep = 0;
 let sequenceCompelete = false;
 let finalPoint = 0;
@@ -151,9 +151,9 @@ function triggerVideoIfNeeded(predArray) {
 
 function getAnimForPose(posename) {
   switch (posename) {
-    case "wave hand": return "./asset/Animation_3.webm";
-    case "sit": return "./asset/Animation_2.webm";
-    case "think": return "./asset/Animation_1.webm";
+    case "Wave Left Hand": return "./asset/Animation_3.webm";
+    case "Wave Right Hand": return "./asset/Animation_2.webm";
+    case "Wave Two Hands": return "./asset/Animation_1.webm";
     default: return "";
   }
 }
