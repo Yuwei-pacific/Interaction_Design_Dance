@@ -10,11 +10,14 @@
 
 // ---------------------- 全局常量与变量 ----------------------
 const URL = "./my-pose-model/";
-let model, video, canvas, ctx, labelContainer;
-const animVideo = document.getElementById("animVideo");   // 叠加动画
+let model, video, canvas, ctx;
+let labelContainer, barContainer;    // ← 不要忘了在全局声明
+const animVideo = document.getElementById("animVideo");
+const finishpage = document.getElementById("finish-page");
+const restart = document.getElementById("restart");
 // 用于缓存连续识别的帧数
 let detectionCounter = 0;
-const requiredStableFrames = 3;
+const requiredStableFrames = 10;
 
 // --------------------------- 入口 ---------------------------
 async function init() {
@@ -24,32 +27,15 @@ async function init() {
   /* 2. 获取/准备 DOM 元素 */
   canvas = document.getElementById("canvas");
   ctx = canvas.getContext("2d");
-  labelContainer = document.getElementById("label-container");
+  labelContainer = document.getElementById("label-container");  // ← 直接赋值
+  barContainer = document.getElementById("bar-container");    // ← 直接赋值
 
   /* 3. 打开摄像头 */
   await setupCamera();
   video.play();
 
   /* 4. 根据类别数生成条形图 UI */
-  const maxPredictions = model.getTotalClasses();
-  for (let i = 0; i < maxPredictions; i++) {
-    const barContainer = document.createElement("div");
-    barContainer.className = "bar-container";
-
-    const label = document.createElement("span");
-    label.className = "label";
-
-    const bar = document.createElement("div");
-    bar.className = "bar";
-
-    const fill = document.createElement("div");
-    fill.className = "fill";
-
-    bar.appendChild(fill);
-    barContainer.appendChild(label);
-    barContainer.appendChild(bar);
-    labelContainer.appendChild(barContainer);
-  }
+  createUI()
 
   /* 5. 绑定一次性的 ended 事件：播放完成后隐藏视频 */
   animVideo.addEventListener("ended", () => {
@@ -96,13 +82,18 @@ async function predict() {
   const prediction = await model.predict(posenetOutput);
 
   /* C. 更新条形图 UI */
-  for (let i = 0; i < prediction.length; i++) {
-    const barContainer = labelContainer.childNodes[i];
-    const label = barContainer.querySelector(".label");
-    const fill = barContainer.querySelector(".fill");
+  const currentPoseName = poseSequence[currentStep];
+  const predictionPose = prediction.find(p => p.className === currentPoseName);
 
-    label.innerText = `${prediction[i].className}: ${prediction[i].probability.toFixed(2)}`;
-    fill.style.width = `${prediction[i].probability * 100}%`;
+  if (predictionPose) {
+    currentLabel.innerText = `${currentPoseName}: ${predictionPose.probability.toFixed(2)}`;
+    currentFill.style.width = `${predictionPose.probability * 100}%`;
+    currentImage.src = `./asset/${currentPoseName}.png`
+
+  } else {
+    currentLabel.innerText = `Dance Finished`;
+    currentFill.style.width = `0%`;
+    currentImage.src = ``
   }
 
   /* D. 触发动画（关键行）*/
@@ -117,7 +108,7 @@ async function predict() {
 }
 
 // --------------------------- 定义动作序列 ---------------------------
-const poseSequence = ['Wave Left Hand', 'Wave Right Hand', 'Wave Two Hands'];
+const poseSequence = ['Wave Right Hand', 'Wave Left Hand', 'Touch your Face', 'Wave Left Hand', 'Touch your Face', 'Wave Two Hands', 'Wave Left Hand'];
 let currentStep = 0;
 let sequenceCompelete = false;
 let finalPoint = 0;
@@ -140,6 +131,8 @@ function triggerVideoIfNeeded(predArray) {
 
       if (currentStep >= poseSequence.length) {
         sequenceCompelete = true;
+        finishpage.classList.add('show');
+        restart.classList.add('show');
         console.log("🎉 所有动作完成！");
       }
     }
@@ -149,11 +142,41 @@ function triggerVideoIfNeeded(predArray) {
   }
 }
 
+// --------------------------- UI 构造函数 ---------------------------
+function createUI() {
+  // 每次调用前确保容器是空的
+  labelContainer.innerHTML = "";
+  barContainer.innerHTML = "";
+
+  const MovementImage = document.createElement("img");
+  MovementImage.className = "MovementImage";
+  MovementImage.width = 60;
+  labelContainer.appendChild(MovementImage);
+
+  const label = document.createElement("span");
+  label.className = "label";
+  labelContainer.appendChild(label);
+
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  const fill = document.createElement("div");
+  fill.className = "fill";
+  bar.appendChild(fill);
+  barContainer.appendChild(bar);
+
+  // 暴露给外面用
+  window.currentImage = MovementImage;
+  window.currentLabel = label;
+  window.currentFill = fill;
+}
+
 function getAnimForPose(posename) {
   switch (posename) {
     case "Wave Left Hand": return "./asset/Animation_3.webm";
     case "Wave Right Hand": return "./asset/Animation_2.webm";
     case "Wave Two Hands": return "./asset/Animation_1.webm";
+    case "Touch your Face": return "./asset/Animation_2.webm";
+
     default: return "";
   }
 }
@@ -171,12 +194,31 @@ function playAnim(src) {
 const uicanvas = document.getElementById("uicanvas");
 const ctxui = uicanvas.getContext("2d");
 const uiImage = new Image();
-uiImage.src = "./asset/deneme2.png";
+uiImage.src = "./asset/Rectangle 151.png";
 
 uiImage.onload = () => {
   ctxui.clearRect(0, 0, uicanvas.width, uicanvas.height);
   ctxui.drawImage(uiImage, 0, 0, 400, 700);
 };
+
+// --------------------------- 按钮事件 ---------------------------
+restart.addEventListener('click', () => {
+  // 1. 状态重置
+  currentStep = 0;
+  sequenceCompelete = false;
+  detectionCounter = 0;
+  finishpage.classList.remove('show');
+  restart.classList.remove('show');
+
+  // 2. 清空旧的 UI 容器
+  labelContainer.innerHTML = '';
+  barContainer.innerHTML = '';
+
+  // 3. 重新创建（或者调用你原来在 init 里那段造 UI 的函数）
+  createUI();
+
+  console.log('已重置动作序列并重建 UI');
+});
 
 // --------------------------- 启动 ---------------------------
 document.addEventListener("DOMContentLoaded", init);
