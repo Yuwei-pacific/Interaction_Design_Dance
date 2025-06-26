@@ -3,9 +3,10 @@
  body {
    text-align: center;
    /* background-color: #000; */
-   background-image: url(./asset/image.png);
+   background-image: url(./asset/background.png);
+   background-size: auto;
    /* color: white; */
-   font-family: Arial, Helvetica, sans-serif;
+   font-family: Futura, Helvetica, sans-serif;
 
  }
 
@@ -79,6 +80,10 @@
    /* border: 1px, solid, white; */
  }
 
+ .logo {
+   width: 100%;
+ }
+
  .screen {
    height: 77%;
    /* height: 69.2vh; */
@@ -89,7 +94,7 @@
    justify-content: center;
    align-items: center;
    border-radius: 12px 12px 0px 0px;
-   background-color: silver;
+   background-color: rgba(255, 255, 255, 0.12);
  }
 
  .base {
@@ -101,7 +106,7 @@
    justify-content: center;
    align-items: center;
    border-radius: 0px 0px 12px 12px;
-   background-color: silver;
+   background-color: rgba(255, 255, 255, 0.12);
  }
 
 
@@ -188,6 +193,7 @@
  }
 
  .label {
+   color: white;
    position: absolute;
    left: 50%;
    transform: translateX(-50%);
