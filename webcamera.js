@@ -172,10 +172,10 @@ function createUI() {
 
 function getAnimForPose(posename) {
   switch (posename) {
-    case "Wave Left Hand": return "./asset/Animation_3.webm";
-    case "Wave Right Hand": return "./asset/Animation_2.webm";
-    case "Wave Two Hands": return "./asset/Animation_1.webm";
-    case "Touch your Face": return "./asset/Animation_2.webm";
+    case "Wave Left Hand": return "./asset/NOVI.webm";
+    case "Wave Right Hand": return "./asset/NOVI.webm";
+    case "Wave Two Hands": return "./asset/NOVI.webm";
+    case "Touch your Face": return "./asset/NOVI.webm";
 
     default: return "";
   }
